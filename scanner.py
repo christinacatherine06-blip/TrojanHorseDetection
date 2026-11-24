@@ -129,43 +129,98 @@ def scan_file(file_path):
     # Check for a misleading double extension.
     double_extension = check_double_extension(path)
     hash_match = check_hash_blocklist(file_hash)
+    content_matches = check_suspicious_content(path)
 
     # Display file information.
-    print("\n========== FILE ANALYSIS ==========")
+    print("\n--------------------------- FILE ANALYSIS -----------------------")
     print("File Name:", file_name)
     print("File Extension:", file_extension or "(none)")
     print("File Size:", file_size, "bytes")
     print("SHA-256 Hash:", file_hash)
-    print("===================================")
+    print("----------------------------------------------------------------")
 
     # Display detection results.
-    print("\n========== DETECTION RESULTS ==========")
-
     
-    # Display double extension detection results.
+    # Display the detection results.
+    print("\n---------------------------- DETECTION RESULTS -------------------------------")
+
+    # Check for misleading double extensions.
     if double_extension:
         print("Double Extension: DETECTED")
     else:
         print("Double Extension: Not detected")
 
-    # Display hash blocklist detection results.
+    # Check for a SHA-256 blocklist match.
     if hash_match:
         print("Hash Blocklist: MATCH FOUND")
     else:
         print("Hash Blocklist: No match")
 
-    # Flag the file if either detection rule is triggered.
-    if double_extension or hash_match:
-        print("Status: FLAGGED FOR REVIEW")
+    # Display suspicious content indicators.
+    if content_matches:
+        print("Suspicious Content: DETECTED")
 
-        # Explain which indicators triggered the warning.
+        # Display each matching indicator.
+        for indicator in content_matches:
+            print(" -", indicator)
+    else:
+        print("Suspicious Content: Not detected")
+
+    # Flag the file if at least one rule is triggered.
+    if double_extension or hash_match or content_matches:
+        print("\nStatus: FLAGGED FOR REVIEW")
+
+        # Explain why the file was flagged.
         if double_extension:
             print("Reason: Misleading double extension.")
 
         if hash_match:
             print("Reason: SHA-256 hash matched test blocklist.")
+
+        if content_matches:
+            print("Reason: Suspicious test indicators found.")
     else:
-        print("Status: No suspicious indicators found.")
+        print("\nStatus: No suspicious indicators found.")
 
-    print("=======================================")
+    print("------------------------------------------------------------")
 
+
+
+def check_suspicious_content(file_path):
+    """
+    Search a file for predefined suspicious test indicators.
+
+    This function reads file contents without executing them.
+
+    Returns a list of indicators found in the file.
+    """
+
+    # Define harmless indicators for our controlled experiment.
+    suspicious_indicators = [
+        "SIMULATED_CREDENTIAL_ACCESS",
+        "SIMULATED_REMOTE_CONTROL",
+        "SIMULATED_DATA_EXFILTRATION",
+        "SIMULATED_PAYLOAD_DOWNLOAD"
+    ]
+
+    # Store any indicators detected in the file.
+    detected_indicators = []
+
+    # Open the file in binary mode.
+    with open(file_path, "rb") as file:
+
+        # Read the contents of the file.
+        file_content = file.read()
+
+    # Check each indicator against the file contents.
+    for indicator in suspicious_indicators:
+
+        # Convert the indicator to bytes before comparison.
+        indicator_bytes = indicator.encode("utf-8")
+
+        # Check whether the indicator appears in the file.
+        if indicator_bytes in file_content:
+            detected_indicators.append(indicator)
+
+    # Return the list of detected indicators.
+    return detected_indicators
