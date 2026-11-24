@@ -72,6 +72,36 @@ def check_double_extension(file_path):
     return False
 
 
+def check_hash_blocklist(file_hash):
+    """
+    Compare a file's SHA-256 hash with hashes stored
+    in our local test blocklist.
+
+    Returns True if a matching hash is found.
+    """
+
+    # Locate the blocklist beside scanner.py.
+    blocklist_path = Path(__file__).resolve().parent / "hash_blocklist.txt"
+
+    # Check whether the blocklist file exists.
+    if not blocklist_path.is_file():
+        print("Warning: Hash blocklist was not found.")
+        return False
+
+    # Open the blocklist and read its stored hashes.
+    with open(blocklist_path, "r", encoding="utf-8") as file:
+
+        # Remove extra spaces and convert hashes to lowercase.
+        known_hashes = {
+            line.strip().lower()
+            for line in file
+            if line.strip()
+        }
+
+    # Return True if the scanned hash matches a stored hash.
+    return file_hash.lower() in known_hashes
+
+
 def scan_file(file_path):
     """
     Analyze a file using static analysis.
@@ -98,6 +128,7 @@ def scan_file(file_path):
 
     # Check for a misleading double extension.
     double_extension = check_double_extension(path)
+    hash_match = check_hash_blocklist(file_hash)
 
     # Display file information.
     print("\n========== FILE ANALYSIS ==========")
@@ -110,12 +141,31 @@ def scan_file(file_path):
     # Display detection results.
     print("\n========== DETECTION RESULTS ==========")
 
+    
+    # Display double extension detection results.
     if double_extension:
         print("Double Extension: DETECTED")
-        print("Status: FLAGGED FOR REVIEW")
-        print("Reason: Misleading executable file extension.")
     else:
         print("Double Extension: Not detected")
-        print("Status: No suspicious double extension found.")
+
+    # Display hash blocklist detection results.
+    if hash_match:
+        print("Hash Blocklist: MATCH FOUND")
+    else:
+        print("Hash Blocklist: No match")
+
+    # Flag the file if either detection rule is triggered.
+    if double_extension or hash_match:
+        print("Status: FLAGGED FOR REVIEW")
+
+        # Explain which indicators triggered the warning.
+        if double_extension:
+            print("Reason: Misleading double extension.")
+
+        if hash_match:
+            print("Reason: SHA-256 hash matched test blocklist.")
+    else:
+        print("Status: No suspicious indicators found.")
 
     print("=======================================")
+
